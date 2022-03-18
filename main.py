@@ -5,6 +5,7 @@ import os
 import cv2
 import questionary
 import requests
+from requests import RequestException
 
 
 def preprocess_image(image_file_path, max_width, max_height):
@@ -72,7 +73,10 @@ def container_predict(image_file_path, image_key, port_number=8501):
     # please change localhost to IP of other servers.
     url = 'http://localhost:{}/v1/models/default:predict'.format(port_number)
     boxes = []
-    response = requests.post(url, data=json.dumps(instances))
+    try:
+        response = requests.post(url, data=json.dumps(instances))
+    except RequestException:
+        return img, boxes
     if response.status_code == 200:
         result = response.json()
         if isinstance(result, dict) and "predictions" in result:
@@ -105,6 +109,8 @@ def main():
     image_mat, boxes = container_predict(img_path, os.path.basename(img_path))
     for box in boxes:
         cv2.rectangle(image_mat, box[1], box[2], (255, 0, 0), thickness=1)
+        cv2.putText(image_mat, box[0], box[2], cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 0, 0),
+                    thickness=2)
     cv2.imshow('result', image_mat)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
